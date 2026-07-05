@@ -1,0 +1,345 @@
+###############################################################################
+# Ecommerce API — REST Client (.http)
+#
+# How to use (Cursor / VS Code):
+#   1. Install extension: "REST Client" (Huachao Mao)
+#   2. Start API: docker compose up -d
+#   3. Click "Send Request" above any ### section (run top to bottom)
+#   4. Change @email / @phone before signup if re-running tests
+#
+# Tip: Run sections in order. Token and product IDs are captured automatically
+#      where possible; paste IDs manually if a variable is empty.
+###############################################################################
+
+@baseUrl = http://localhost:8000
+@email = e2e-http@example.com
+@phone = 9876543210
+@password = password123
+
+# Filled automatically after login (or paste manually)
+@token = 
+
+# Filled after listing products (or paste from response)
+@productId1 = 
+@productId2 = 
+
+
+###############################################################################
+# 01 — PUBLIC: List all products
+###############################################################################
+
+### 01 List products (public)
+GET {{baseUrl}}/users/productview
+
+
+###############################################################################
+# 02 — PUBLIC: Search (invalid — no query)
+###############################################################################
+
+### 02 Search without query (expect 400)
+GET {{baseUrl}}/users/search
+
+
+###############################################################################
+# 03 — AUTH: Protected route without token (expect 401)
+###############################################################################
+
+### 03 Get cart without token (expect 401)
+GET {{baseUrl}}/usercart
+
+
+###############################################################################
+# 04 — AUTH: Sign up
+###############################################################################
+
+### 04 Sign up
+# @name signup
+POST {{baseUrl}}/users/signup
+Content-Type: application/json
+
+{
+  "first_name": "HTTP",
+  "last_name": "Tester",
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "phone": "{{phone}}"
+}
+
+
+###############################################################################
+# 05 — AUTH: Duplicate signup (expect 400)
+###############################################################################
+
+### 05 Sign up duplicate email (expect 400)
+POST {{baseUrl}}/users/signup
+Content-Type: application/json
+
+{
+  "first_name": "HTTP",
+  "last_name": "Tester",
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "phone": "1111111111"
+}
+
+
+###############################################################################
+# 06 — AUTH: Login wrong password (expect 401)
+###############################################################################
+
+### 06 Login wrong password (expect 401)
+POST {{baseUrl}}/users/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "wrong-password"
+}
+
+
+###############################################################################
+# 07 — AUTH: Login success → saves @token
+###############################################################################
+
+### 07 Login
+# @name login
+POST {{baseUrl}}/users/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+###
+@token = {{login.response.body.$.token}}
+
+
+###############################################################################
+# 08 — PRODUCTS: Add laptop (auth required)
+###############################################################################
+
+### 08 Add product — Laptop
+# @name addLaptop
+POST {{baseUrl}}/admin/addproduct
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "product_name": "E2E Laptop",
+  "product_description": "Test laptop",
+  "product_price": 999.99,
+  "product_image": "laptop.png",
+  "product_category": "electronics",
+  "product_stock": 10,
+  "product_rating": 4.5,
+  "product_reviews": ["great"]
+}
+
+
+###############################################################################
+# 09 — PRODUCTS: Add phone (auth required)
+###############################################################################
+
+### 09 Add product — Phone
+# @name addPhone
+POST {{baseUrl}}/admin/addproduct
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "product_name": "E2E Phone",
+  "product_description": "Test phone",
+  "product_price": 499.99,
+  "product_image": "phone.png",
+  "product_category": "electronics",
+  "product_stock": 5,
+  "product_rating": 4.0,
+  "product_reviews": ["good"]
+}
+
+
+###############################################################################
+# 10 — PRODUCTS: List & capture product IDs
+#     Copy product_id values into @productId1 / @productId2 at top if needed
+###############################################################################
+
+### 10 List products & find IDs
+# @name listProducts
+GET {{baseUrl}}/users/productview
+
+###
+# Optional: set manually after reading response above
+# @productId1 = 674abc123...
+# @productId2 = 674def456...
+
+
+###############################################################################
+# 11 — PRODUCTS: Search by name
+###############################################################################
+
+### 11 Search products by name
+GET {{baseUrl}}/users/search?name=Laptop
+
+
+###############################################################################
+# 12 — CART: Add item
+#     Replace {{productId1}} at top, or paste id in URL below
+###############################################################################
+
+### 12 Add to cart
+POST {{baseUrl}}/addtocart?id={{productId1}}
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 13 — CART: View cart
+###############################################################################
+
+### 13 Get cart
+GET {{baseUrl}}/usercart
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 14 — CART: Remove item
+###############################################################################
+
+### 14 Remove from cart
+DELETE {{baseUrl}}/removeitem?id={{productId1}}
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 15 — CART: Verify empty cart
+###############################################################################
+
+### 15 Get cart (should be empty)
+GET {{baseUrl}}/usercart
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 16 — CART: Add item again for checkout
+###############################################################################
+
+### 16 Add to cart (for checkout)
+POST {{baseUrl}}/addtocart?id={{productId1}}
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 17 — CART: Checkout
+###############################################################################
+
+### 17 Checkout cart
+POST {{baseUrl}}/cartcheckout
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 18 — CART: Verify cart empty after checkout
+###############################################################################
+
+### 18 Get cart after checkout
+GET {{baseUrl}}/usercart
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 19 — CART: Instant buy
+###############################################################################
+
+### 19 Instant buy
+POST {{baseUrl}}/instantbuy?id={{productId2}}
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 20 — ADDRESS: Add home address
+###############################################################################
+
+### 20 Add home address
+POST {{baseUrl}}/users/addaddress
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "address_street": "123 Home St",
+  "address_city": "Mumbai",
+  "address_state": "MH",
+  "address_zip": "400001",
+  "address_country": "India"
+}
+
+
+###############################################################################
+# 21 — ADDRESS: Edit home address
+###############################################################################
+
+### 21 Edit home address
+PUT {{baseUrl}}/users/edithomeaddress
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "address_street": "456 Updated Home St",
+  "address_city": "Mumbai",
+  "address_state": "MH",
+  "address_zip": "400002",
+  "address_country": "India"
+}
+
+
+###############################################################################
+# 22 — ADDRESS: Add work address
+###############################################################################
+
+### 22 Add work address
+POST {{baseUrl}}/users/addaddress
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "address_street": "789 Work Ave",
+  "address_city": "Pune",
+  "address_state": "MH",
+  "address_zip": "411001",
+  "address_country": "India"
+}
+
+
+###############################################################################
+# 23 — ADDRESS: Edit work address
+###############################################################################
+
+### 23 Edit work address
+PUT {{baseUrl}}/users/editworkaddress
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "address_street": "101 Updated Work Ave",
+  "address_city": "Pune",
+  "address_state": "MH",
+  "address_zip": "411002",
+  "address_country": "India"
+}
+
+
+###############################################################################
+# 24 — ADDRESS: Delete all addresses
+###############################################################################
+
+### 24 Delete addresses
+DELETE {{baseUrl}}/users/deleteaddress
+Authorization: Bearer {{token}}
+
+
+###############################################################################
+# 25 — ERROR: Invalid product ID (expect 404)
+###############################################################################
+
+### 25 Add invalid product to cart (expect 404)
+POST {{baseUrl}}/addtocart?id=000000000000000000000000
+Authorization: Bearer {{token}}
