@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/iskelk/ecommerce-yt/controllers"
+	"github.com/iskelk/ecommerce-yt/middleware"
 )
 
 func PublicRoutes(router *gin.Engine, app *controllers.Application) {
@@ -13,7 +14,9 @@ func PublicRoutes(router *gin.Engine, app *controllers.Application) {
 }
 
 func ProtectedRoutes(router *gin.RouterGroup, app *controllers.Application) {
-	router.POST("/admin/addproduct", app.AddProduct())
+	admin := router.Group("/")
+	admin.Use(middleware.AdminOnly())
+	admin.POST("/admin/addproduct", app.AddProduct())
 
 	router.POST("/addtocart", app.AddToCart())
 	router.DELETE("/removeitem", app.RemoveFromCart())

@@ -61,8 +61,9 @@ func (app *Application) SignUp() gin.HandlerFunc {
 		user.ID = primitive.NewObjectID()
 		userID := user.ID.Hex()
 		user.User_ID = &userID
+		user.Is_Admin = isBootstrapAdmin(*user.Email)
 
-		token, refreshToken, err := generate.TokenGenerator(*user.Email, *user.First_Name, *user.Last_Name, userID)
+		token, refreshToken, err := generate.TokenGenerator(*user.Email, *user.First_Name, *user.Last_Name, userID, user.Is_Admin)
 		if err != nil {
 			apiresponse.Internal(c, err)
 			return
@@ -112,11 +113,21 @@ func (app *Application) Login() gin.HandlerFunc {
 			return
 		}
 
+		isAdmin := resolveAdminStatus(foundUser.Is_Admin, *foundUser.Email)
+		if isAdmin != foundUser.Is_Admin {
+			if err := database.SetUserAdmin(ctx, app.UserCollection, *foundUser.User_ID, isAdmin); err != nil {
+				respondError(c, err)
+				return
+			}
+			foundUser.Is_Admin = isAdmin
+		}
+
 		token, refreshToken, err := generate.TokenGenerator(
 			*foundUser.Email,
 			*foundUser.First_Name,
 			*foundUser.Last_Name,
 			*foundUser.User_ID,
+			isAdmin,
 		)
 		if err != nil {
 			apiresponse.Internal(c, err)

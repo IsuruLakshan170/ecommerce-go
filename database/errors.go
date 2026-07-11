@@ -6,6 +6,7 @@ var (
 	ErrUserNotFound     = errors.New("user not found")
 	ErrUserIdIsNotValid = errors.New("user id is not valid")
 	ErrUpdateTokens     = errors.New("failed to update tokens")
+	ErrUpdateUser       = errors.New("failed to update user")
 
 	ErrCantFindProduct = errors.New("can't find product")
 	ErrAddToCart       = errors.New("cannot add product to cart")

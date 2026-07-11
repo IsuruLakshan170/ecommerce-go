@@ -50,7 +50,8 @@ func respondError(c *gin.Context, err error) {
 		errors.Is(err, database.ErrCreateProduct),
 		errors.Is(err, database.ErrListProducts),
 		errors.Is(err, database.ErrSearchProducts),
-		errors.Is(err, database.ErrUpdateTokens):
+		errors.Is(err, database.ErrUpdateTokens),
+		errors.Is(err, database.ErrUpdateUser):
 		apiresponse.Error(c, http.StatusInternalServerError, err.Error())
 	default:
 		apiresponse.Internal(c, err)

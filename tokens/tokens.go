@@ -19,6 +19,7 @@ type SignedDetails struct {
 	First_Name string
 	Last_Name  string
 	Uid        string
+	Is_Admin   bool `json:"is_admin"`
 	jwt.RegisteredClaims
 }
 
@@ -33,7 +34,7 @@ func jwtSecret() ([]byte, error) {
 	return []byte(key), nil
 }
 
-func TokenGenerator(email, firstname, lastname, uid string) (signedToken, refreshToken string, err error) {
+func TokenGenerator(email, firstname, lastname, uid string, isAdmin bool) (signedToken, refreshToken string, err error) {
 	secret, err := jwtSecret()
 	if err != nil {
 		return "", "", err
@@ -44,6 +45,7 @@ func TokenGenerator(email, firstname, lastname, uid string) (signedToken, refres
 		First_Name: firstname,
 		Last_Name:  lastname,
 		Uid:        uid,
+		Is_Admin:   isAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Local().Add(time.Hour * 24)),
 		},

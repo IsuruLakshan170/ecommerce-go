@@ -90,9 +90,8 @@ func healthCheck(client *http.Client, baseURL string) bool {
 }
 
 func setupAuth(client *http.Client, baseURL string) (string, error) {
-	suffix := time.Now().UnixNano()
-	email := fmt.Sprintf("perf-%d@example.com", suffix)
-	phone := fmt.Sprintf("8%09d", suffix%1_000_000_000)
+	email := "loadtest-admin@example.com"
+	phone := "8000000001"
 	password := "password123"
 
 	signupBody, _ := json.Marshal(map[string]string{
@@ -102,15 +101,18 @@ func setupAuth(client *http.Client, baseURL string) (string, error) {
 		"password":   password,
 		"phone":      phone,
 	})
-	if _, err := doRequest(client, baseURL, http.MethodPost, "/users/signup", signupBody, ""); err != nil {
+	resp, err := doRequest(client, baseURL, http.MethodPost, "/users/signup", signupBody, "")
+	if err != nil {
 		return "", err
 	}
+	io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
 
 	loginBody, _ := json.Marshal(map[string]string{
 		"email":    email,
 		"password": password,
 	})
-	resp, err := doRequest(client, baseURL, http.MethodPost, "/users/login", loginBody, "")
+	resp, err = doRequest(client, baseURL, http.MethodPost, "/users/login", loginBody, "")
 	if err != nil {
 		return "", err
 	}

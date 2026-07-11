@@ -14,6 +14,7 @@ const (
 	MsgTokenExpired   = "token is expired"
 	MsgNoToken        = "no authorization token provided"
 	MsgLoginIncorrect = "login or password is incorrect"
+	MsgForbidden      = "admin access required"
 )
 
 func Error(c *gin.Context, status int, message string) {
@@ -30,6 +31,10 @@ func Unauthorized(c *gin.Context, message string) {
 
 func NotFound(c *gin.Context, message string) {
 	Error(c, http.StatusNotFound, message)
+}
+
+func Forbidden(c *gin.Context, message string) {
+	Error(c, http.StatusForbidden, message)
 }
 
 func Internal(c *gin.Context, err error) {

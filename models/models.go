@@ -18,6 +18,7 @@ type User struct {
 	Created_At           *time.Time         `json:"created_at" bson:"created_at"`
 	Updated_At           *time.Time         `json:"updated_at" bson:"updated_at"`
 	User_ID              *string            `json:"user_id" bson:"user_id"`
+	Is_Admin             bool               `json:"is_admin,omitempty" bson:"is_admin"`
 	User_cart            *[]ProductUser     `json:"user_cart" bson:"user_cart"`
 	User_address_details *[]Address         `json:"user_address_details" bson:"user_address_details"`
 	User_order_status    *[]Order           `json:"user_order_status" bson:"user_order_status"`

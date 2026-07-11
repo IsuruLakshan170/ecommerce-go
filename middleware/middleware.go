@@ -43,6 +43,19 @@ func Authentication() gin.HandlerFunc {
 
 		c.Set("email", claims.Email)
 		c.Set("uid", claims.Uid)
+		c.Set("is_admin", claims.Is_Admin)
+		c.Next()
+	}
+}
+
+func AdminOnly() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		isAdmin, ok := c.Get("is_admin")
+		if !ok || isAdmin != true {
+			apiresponse.Forbidden(c, apiresponse.MsgForbidden)
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
 }

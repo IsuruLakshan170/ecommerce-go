@@ -26,6 +26,7 @@ services:
       PORT: "8000"
       MONGODB_URI: mongodb://mongo:27017
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-e2e-http@example.com,loadtest-admin@example.com}
     depends_on:
       mongo:
         condition: service_healthy

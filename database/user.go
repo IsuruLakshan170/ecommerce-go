@@ -69,6 +69,17 @@ func FindUserByID(ctx context.Context, userCollection *mongo.Collection, userID 
 	return user, nil
 }
 
+func SetUserAdmin(ctx context.Context, userCollection *mongo.Collection, userID string, isAdmin bool) error {
+	filter := bson.M{"user_id": userID}
+	update := bson.M{"$set": bson.M{"is_admin": isAdmin}}
+	_, err := userCollection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		log.Println(err)
+		return ErrUpdateUser
+	}
+	return nil
+}
+
 func UpdateUserTokens(ctx context.Context, userCollection *mongo.Collection, userID, token, refreshToken string) error {
 	filter := bson.M{"user_id": userID}
 	update := bson.M{
