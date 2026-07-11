@@ -13,6 +13,7 @@ Built with **Go** · **Gin** · **MongoDB** · **JWT**
 [![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![JWT](https://img.shields.io/badge/JWT-HS256-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://github.com/golang-jwt/jwt)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/IsuruLakshan170/ecommerce-go)
 
 <br/>
 
@@ -20,7 +21,8 @@ Built with **Go** · **Gin** · **MongoDB** · **JWT**
 [🏗 Architecture](#-architecture) ·
 [📡 API Reference](#-api-reference) ·
 [🐳 Docker](#-docker) ·
-[🔐 Security](#-security)
+[🔐 Security](#-security) ·
+[👤 Author](#-author)
 
 </div>
 
@@ -42,6 +44,7 @@ Built with **Go** · **Gin** · **MongoDB** · **JWT**
 - [🧪 Testing & Performance](#-testing--performance)
 - [🐳 Docker](#-docker)
 - [🔐 Security](#-security)
+- [👤 Author](#-author)
 - [📄 License](#-license)
 
 ---
@@ -171,6 +174,10 @@ Client  →  Gin Router  →  Middleware  →  Controller  →  Database  →  M
 ## 🚀 Quick Start
 
 ```bash
+# 📥 Clone the repository
+git clone https://github.com/IsuruLakshan170/ecommerce-go.git
+cd ecommerce-go
+
 # 🐳 Start API + MongoDB
 docker compose up -d
 ```
@@ -390,6 +397,7 @@ Non-admin users receive **403 Forbidden** on `/admin/*` routes even with a valid
 ├── 📄 main.go                 # Entry point · DB · router
 ├── 🛣 routes/                 # Public & protected routes
 ├── 🎮 controllers/            # HTTP handlers · validation · admin bootstrap
+│   └── admin.go               # ADMIN_EMAILS bootstrap · admin role resolution
 ├── 🗄 database/               # MongoDB access layer
 ├── 📐 models/                 # Domain models
 ├── 🛡 middleware/             # JWT authentication · AdminOnly RBAC
@@ -482,6 +490,18 @@ docker run -p 8000:8000 \
 
 ---
 
+## 👤 Author
+
+**Isuru Lakshan Ketawala**
+
+| | |
+|---|---|
+| 🐙 **GitHub** | [@IsuruLakshan170](https://github.com/IsuruLakshan170) |
+| 📦 **Repository** | [github.com/IsuruLakshan170/ecommerce-go](https://github.com/IsuruLakshan170/ecommerce-go) |
+| ✉️ **Email** | [lakshanisuru170@gmail.com](mailto:lakshanisuru170@gmail.com) |
+
+---
+
 ## 📄 License
 
 This project is provided as-is for educational and development purposes.
@@ -490,7 +510,7 @@ This project is provided as-is for educational and development purposes.
 
 <div align="center">
 
-**Built with ❤️ using Go**
+**Built with ❤️ using Go** · [View on GitHub](https://github.com/IsuruLakshan170/ecommerce-go)
 
 ⭐ Star this repo if you find it useful!
 
