@@ -53,7 +53,8 @@ Built with **Go** · **Gin** · **MongoDB** · **JWT**
 | | |
 |---|---|
 | 🌐 **Public API** | Product listing & search — no login required |
-| 🔒 **Protected API** | Cart, checkout, addresses & admin product management |
+| 🔒 **Protected API** | Cart, checkout & address management (any authenticated user) |
+| 👑 **Admin API** | Product creation — requires JWT with `is_admin: true` |
 | 🗄 **Persistence** | MongoDB collections: `Users` · `Products` |
 
 ---
@@ -63,7 +64,8 @@ Built with **Go** · **Gin** · **MongoDB** · **JWT**
 | Domain | Capabilities |
 |:------:|--------------|
 | 🔐 **Authentication** | Signup · Login · bcrypt hashing · JWT access & refresh tokens |
-| 📦 **Products** | Public listing & search · Admin product creation |
+| 👑 **Authorization** | Role-based admin access on `/admin/*` · `is_admin` JWT claim |
+| 📦 **Products** | Public listing & search · Admin-only product creation |
 | 🛍 **Cart** | Add / remove items · View total · Checkout · Instant buy |
 | 📍 **Addresses** | Home & work addresses (max 2) · Edit · Delete |
 | ✅ **Validation** | Request validation via `go-playground/validator` |
@@ -114,7 +116,7 @@ Built with **Go** · **Gin** · **MongoDB** · **JWT**
 |-------|---------------|-------------------|
 | 💻 **Clients** | REST Client · e2e load test | HTTP/JSON requests |
 | 🚪 **Entry Point** | Docker Compose `:8000` | Exposes API to host |
-| 🐹 **Go Application** | Gin · JWT middleware · Controllers · DB layer | Routing · Auth · Business logic |
+| 🐹 **Go Application** | Gin · JWT + Admin middleware · Controllers · DB layer | Routing · Auth · RBAC · Business logic |
 | 🍃 **MongoDB 7** | `Users` · `Products` | Profiles · Carts · Orders · Catalog |
 
 <details>
@@ -126,13 +128,15 @@ Built with **Go** · **Gin** · **MongoDB** · **JWT**
 Client  →  Gin Router  →  Middleware  →  Controller  →  Database  →  MongoDB
                 │              │
                 │         JWT Auth (protected routes)
+                │         AdminOnly (/admin/* only)
                 └── Logger + Recovery
 ```
 
 1. Gin receives the request with logging & recovery middleware
 2. 🟢 **Public routes** — no authentication
 3. 🔒 **Protected routes** — JWT via `Authorization: Bearer <token>` or `token` header
-4. Controllers validate input → database layer → JSON response
+4. 👑 **Admin routes** — JWT plus `is_admin: true` claim (403 otherwise)
+5. Controllers validate input → database layer → JSON response
 
 </details>
 
@@ -202,6 +206,7 @@ Or set `MONGODB_URI` to your existing instance.
 export PORT=8000
 export MONGODB_URI=mongodb://localhost:27017
 export JWT_SECRET=your-secret-key
+export ADMIN_EMAILS=you@example.com
 ```
 
 ```powershell
@@ -209,6 +214,7 @@ export JWT_SECRET=your-secret-key
 $env:PORT="8000"
 $env:MONGODB_URI="mongodb://localhost:27017"
 $env:JWT_SECRET="your-secret-key"
+$env:ADMIN_EMAILS="you@example.com"
 ```
 
 ### 3️⃣ Run the API
@@ -227,8 +233,9 @@ go run .
 | `PORT` | ❌ | `8000` | HTTP listen port |
 | `MONGODB_URI` | ❌ | `mongodb://localhost:27017` | MongoDB connection string |
 | `JWT_SECRET` | ✅ | — | HMAC secret for JWT signing |
+| `ADMIN_EMAILS` | ❌ | — | Comma-separated emails granted admin on signup/login (Docker Compose sets defaults for e2e) |
 
-> ⚠️ **Production:** Use a strong, unique `JWT_SECRET`. Never commit secrets to version control.
+> ⚠️ **Production:** Use a strong, unique `JWT_SECRET`. Never commit secrets to version control. Set `ADMIN_EMAILS` explicitly for admin accounts — clients cannot self-promote via signup JSON.
 
 ---
 
@@ -251,7 +258,6 @@ go run .
 
 | Method | Path | Description |
 |:------:|------|-------------|
-| `POST` | `/admin/addproduct` | ➕ Add product to catalog |
 | `POST` | `/addtocart?id={productId}` | 🛒 Add to cart |
 | `DELETE` | `/removeitem?id={productId}` | ❌ Remove from cart |
 | `GET` | `/usercart` | 👀 View cart & total |
@@ -261,6 +267,14 @@ go run .
 | `PUT` | `/users/edithomeaddress` | 🏠 Edit home address |
 | `PUT` | `/users/editworkaddress` | 🏢 Edit work address |
 | `DELETE` | `/users/deleteaddress` | 🗑 Delete all addresses |
+
+### 👑 Admin Endpoints
+
+> Requires valid JWT **and** `is_admin: true` — see [Authentication](#-authentication)
+
+| Method | Path | Description |
+|:------:|------|-------------|
+| `POST` | `/admin/addproduct` | ➕ Add product to catalog |
 
 <details>
 <summary><b>📝 Request & Response Examples</b></summary>
@@ -294,13 +308,13 @@ Content-Type: application/json
 }
 ```
 
-Response includes `token`, `refresh_token`, and user profile (password omitted).
+Response includes `token`, `refresh_token`, `is_admin`, and user profile (password omitted).
 
-**Add product** *(authenticated)*
+**Add product** *(admin only)*
 
 ```http
 POST /admin/addproduct
-Authorization: Bearer <token>
+Authorization: Bearer <admin-token>
 Content-Type: application/json
 
 {
@@ -327,6 +341,7 @@ Content-Type: application/json
 |:------:|---------|
 | `400` | 🟡 Bad request · validation · duplicate email/phone |
 | `401` | 🔴 Unauthorized · missing/invalid/expired token |
+| `403` | 🟠 Forbidden · authenticated but not admin (admin routes) |
 | `404` | ⚫ Not found · user or product missing |
 | `500` | 🔴 Internal server error |
 
@@ -349,9 +364,22 @@ token: <access_token>
 | 🎫 Access token | 24 hours |
 | 🔄 Refresh token | 7 days |
 
-**Claims:** `email` · `first_name` · `last_name` · `uid`
+**Claims:** `email` · `first_name` · `last_name` · `uid` · `is_admin`
 
 Obtain tokens via `/users/login` or `/users/signup`.
+
+### 👑 Admin access
+
+Admin status is stored on the user document (`is_admin`) and embedded in the JWT at token issuance.
+
+| How admins are assigned | Behavior |
+|-------------------------|----------|
+| **`ADMIN_EMAILS` env** | Comma-separated list; matching emails get `is_admin: true` on signup or next login |
+| **Existing admins** | `is_admin` persists in MongoDB; re-login refreshes the JWT claim |
+
+Non-admin users receive **403 Forbidden** on `/admin/*` routes even with a valid JWT.
+
+**Docker Compose defaults** (for e2e / load tests): `e2e-http@example.com`, `loadtest-admin@example.com`
 
 ---
 
@@ -361,10 +389,10 @@ Obtain tokens via `/users/login` or `/users/signup`.
 📦 ecommerce-go
 ├── 📄 main.go                 # Entry point · DB · router
 ├── 🛣 routes/                 # Public & protected routes
-├── 🎮 controllers/            # HTTP handlers · validation
+├── 🎮 controllers/            # HTTP handlers · validation · admin bootstrap
 ├── 🗄 database/               # MongoDB access layer
 ├── 📐 models/                 # Domain models
-├── 🛡 middleware/             # JWT authentication
+├── 🛡 middleware/             # JWT authentication · AdminOnly RBAC
 ├── 🔑 tokens/                 # JWT generation & validation
 ├── 📤 apiresponse/            # Standardized JSON responses
 ├── 📚 docs/
@@ -383,7 +411,7 @@ Obtain tokens via `/users/login` or `/users/signup`.
 ### 🖱 Manual Testing — `e2e/api.http`
 
 1. Install [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension
-2. `docker compose up -d`
+2. `docker compose up -d` (includes default `ADMIN_EMAILS` so `e2e-http@example.com` can add products)
 3. Open `e2e/api.http` → run requests top to bottom
 
 ### ⚡ Load Testing — `e2e/loadtest`
@@ -398,7 +426,7 @@ go run ./e2e/loadtest
 | `-n` | `200` | Requests per scenario |
 | `-c` | `20` | Concurrent workers |
 
-Bootstraps auth + test product, then benchmarks listing, search, cart & checkout with latency percentiles.
+Uses the `loadtest-admin@example.com` admin account (included in Docker Compose `ADMIN_EMAILS`), bootstraps a test product, then benchmarks listing, search, cart & checkout with latency percentiles.
 
 ---
 
@@ -416,13 +444,14 @@ Bootstraps auth + test product, then benchmarks listing, search, cart & checkout
 | Service | Image | Port | Notes |
 |:-------:|-------|:----:|-------|
 | 🍃 `mongo` | `mongo:7` | `27017` | Persistent volume · health check |
-| 🐹 `api` | Built from `Dockerfile` | `8000` | Waits for MongoDB health |
+| 🐹 `api` | Built from `Dockerfile` | `8000` | Waits for MongoDB health · sets default `ADMIN_EMAILS` for e2e |
 
 ```bash
 docker build -t ecommerce-api .
 docker run -p 8000:8000 \
   -e MONGODB_URI=mongodb://host.docker.internal:27017 \
   -e JWT_SECRET=your-secret \
+  -e ADMIN_EMAILS=admin@example.com \
   ecommerce-api
 ```
 
@@ -434,6 +463,7 @@ docker run -p 8000:8000 \
 |---|---|
 | 🔒 **Passwords** | bcrypt hashed — never stored in plaintext |
 | 🎫 **JWT** | HS256 signed — protect `JWT_SECRET` in all environments |
+| 👑 **Admin RBAC** | `/admin/*` requires `is_admin` JWT claim — assigned via `ADMIN_EMAILS` or stored flag |
 | 🚫 **Responses** | Password field omitted from login responses |
 | ✅ **Validation** | Struct tags on signup (`email`, length constraints) |
 
@@ -443,7 +473,7 @@ docker run -p 8000:8000 \
 <br/>
 
 - [ ] TLS termination at reverse proxy / load balancer
-- [ ] Role-based access control for `/admin/*` routes
+- [x] Role-based access control for `/admin/*` routes
 - [ ] Rate limiting & request size limits
 - [ ] MongoDB authentication & network isolation
 - [ ] Secret management (Vault, AWS Secrets Manager, etc.)
